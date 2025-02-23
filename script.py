@@ -63,6 +63,82 @@ for season in seasons[1:10]:
 
     time.sleep(4)
 
+    #Here, after navigating to the season's page. We access the season results by finding the xpath then clicking on it
+    driver.find_element(by=By.XPATH, value='//*[@id="li2"]').click()
+
+    time.sleep(5)
+
+    #Here, lets show how we'd deal with dynamic content loading and waiting strategies
+    while True:
+        try:
+            # WebDriverWait(driver, timeout).until(
+            #     EC.presence_of_element_located((By.CLASS_NAME, "event__more.event__more--static"))
+            # )
+            button_element = WebDriverWait(driver, 2).until(
+                                EC.element_to_be_clickable((By.CLASS_NAME, "event__more.event__more--static"))
+                            )
+                            
+            # Scroll the button into view
+            driver.execute_script("arguments[0].scrollIntoView();", button_element)
+            
+            # Click the button using JavaScript
+            driver.execute_script("arguments[0].click();", button_element)
+
+            time.sleep(5)
+
+        except TimeoutException:
+            break
+    
+    #Here, we have loaded all games that happened in a season, so now we want to learn how to deal with popup windows 
+    #When we click on each individual match link, a popup window is automaticallhy created and we can switch to that popup window
+    all_match_links = driver.find_elements(by=By.CLASS_NAME, value='eventRowLink')
+    for match_link in all_match_links:
+        
+        # Scroll the match link into view
+        driver.execute_script("arguments[0].scrollIntoView(true);", match_link)
+
+        # Get the current window handle before clicking
+        original_window = driver.current_window_handle
+
+        # Click the link using JavaScript (opens the popup)
+        driver.execute_script("arguments[0].click();", match_link)
+
+        # Wait for the new window (popup) to open
+        try: 
+            WebDriverWait(driver, 10).until(EC.number_of_windows_to_be(3))
+
+            # Switch to the new window (popup)
+            driver.switch_to.window(driver.window_handles[-1])
+
+            # Now you are controlling the popup window
+            # Wait for the body element to load
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+
+            # Print the popup title or scrape the data you need
+            print(f"Popup title: {driver.title}")
+
+            # Example: Lets print out the home and away teams, as well as the game results:
+
+            text_content = driver.find_element(by=By.XPATH, value='/html/body/div[1]/div/div[4]').text
+
+            print(f"This is the score and summary: {text_content}")
+
+
+            # Close the popup window
+            driver.close()
+
+            # Switch back to the original window
+            driver.switch_to.window(original_window)
+
+            # Wait a bit before clicking the next match link
+            time.sleep(2)
+
+
+        except Exception as e:
+                            print(f'Error getting match popup: {str(e)}')
+    
+    time.sleep(5)
+
     # Close current tab
     driver.close()
 
